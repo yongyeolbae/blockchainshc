@@ -1,45 +1,36 @@
 package main
 
 import (
-	"crypto/sha256"
 	"fmt"
+	"html/template"
+	"log"
+	"net/http"
+
+	"github.com/baeyongyeol/blockchain"
 )
 
-type block struct {
-	data     string
-	hash     string
-	prevHash string
+const (
+	port        string = ":4000"
+	templateDir string = "templates/"
+)
+
+var templates *template.Template
+
+type homeData struct {
+	PageTitle string
+	Blocks    []*blockchain.Block
 }
 
-type blockchain struct {
-	blocks []block
-}
+func home(rw http.ResponseWriter, r *http.Request) {
 
-func (b *blockchain) getLastHash() string {
-	if len(b.blocks) > 0 {
-		return b.blocks[len(b.blocks)-1].hash
-	}
-	return ""
-}
-
-func (b *blockchain) addBlock(data string) {
-	newBlock := block{data, "", b.getLastHash()}
-	hash := sha256.Sum256([]byte(newBlock.data + newBlock.prevHash))
-	newBlock.hash = fmt.Sprintf("%x", hash)
-	b.blocks = append(b.blocks, newBlock)
-}
-
-func (b *blockchain) listBlocks() {
-	for _, block := range b.blocks {
-		fmt.Printf("data: %s\n hash: %s\n prevHash: %s\n", block.data, block.hash, block.prevHash)
-	}
+	data := homeData{"Home", blockchain.GetBlockchain().AllBlocks()}
+	templates.ExecuteTemplate(rw, "home", data)
 }
 
 func main() {
-	chain := blockchain{}
-	chain.addBlock("Genesis Block")
-	chain.addBlock("Second Block")
-	chain.addBlock("Third Block")
-	chain.listBlocks()
-
+	templates = template.Must(template.ParseGlob(templateDir + "pages/*.gohtml"))
+	templates = template.Must(templates.ParseGlob(templateDir + "partials/*.gohtml"))
+	http.HandleFunc("/", home)
+	fmt.Printf("Listening in http://localhost%s\n", port)
+	log.Fatal(http.ListenAndServe(port, nil))
 }
