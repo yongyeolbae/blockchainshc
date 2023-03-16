@@ -1,36 +1,40 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
-	"html/template"
 	"log"
 	"net/http"
-
-	"github.com/baeyongyeol/blockchain"
 )
 
-const (
-	port        string = ":4000"
-	templateDir string = "templates/"
-)
+const port string = ":4000"
 
-var templates *template.Template
-
-type homeData struct {
-	PageTitle string
-	Blocks    []*blockchain.Block
+type URLDescription struct {
+	URL         string `json:"url"`
+	Method      string `json:"method"`
+	Description string `json:"description"`
+	Payload     string `json:"payload,omitempty"`
 }
 
-func home(rw http.ResponseWriter, r *http.Request) {
-
-	data := homeData{"Home", blockchain.GetBlockchain().AllBlocks()}
-	templates.ExecuteTemplate(rw, "home", data)
+func documentation(rw http.ResponseWriter, r *http.Request) {
+	data := []URLDescription{
+		{
+			URL:         "/",
+			Method:      "GET",
+			Description: "See Documentation",
+		},
+		{
+			URL:         "/",
+			Method:      "GET",
+			Description: "See Documentation",
+			Payload:     "data:string",
+		},
+	}
+	rw.Header().Add("Content-Type", "application/json")
+	json.NewEncoder(rw).Encode(data)
 }
-
 func main() {
-	templates = template.Must(template.ParseGlob(templateDir + "pages/*.gohtml"))
-	templates = template.Must(templates.ParseGlob(templateDir + "partials/*.gohtml"))
-	http.HandleFunc("/", home)
-	fmt.Printf("Listening in http://localhost%s\n", port)
+	http.HandleFunc("/", documentation)
+	fmt.Printf("http://localhost%s\n", port)
 	log.Fatal(http.ListenAndServe(port, nil))
 }
